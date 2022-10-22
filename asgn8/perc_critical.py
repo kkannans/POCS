@@ -5,9 +5,9 @@ import random
 import pickle
 from pprint import pprint
 
-def maxAreaOfIsland(grid):
+def distAreaOfIsland(grid):
     seen = set()
-    ans = 0
+    count_size = {}
     for r0, row in enumerate(grid):
         for c0, val in enumerate(row):
             if val and (r0, c0) not in seen:
@@ -22,46 +22,29 @@ def maxAreaOfIsland(grid):
                                 and grid[nr][nc] and (nr, nc) not in seen):
                             stack.append((nr, nc))
                             seen.add((nr, nc))
-                ans = max(ans, shape)
-    return ans
-
-def largest_connected_component(grid):
-    """Find largest connected component of 1s on a grid."""
-
-    def traverse_component(pos):
-        """Returns no. of unseen elements connected to (i,j)."""
-        i, j = pos
-        result = 1
-
-        # Check all four neighbours
-        for new_pos in [(i-1, j), (i+1, j), (i, j-1), (i, j+1)]:
-            if new_pos in elements:
-                elements.remove(new_pos)
-                result += traverse_component(new_pos)
-        return result
-
-    # Tracks size of largest connected component found
-    elements = set((i, j) for i, line in enumerate(grid) for j, cell in enumerate(line) if cell)
-    largest = 0
-    while elements:
-        pos = elements.pop()
-        largest = max(largest, traverse_component(pos))
-    return largest
+                if shape in count_size.keys():
+                    count_size[shape] += 1
+                else:
+                    count_size[shape] = 1
+    return count_size
 
 def generate_grid(grid_size:int, prob:float):
     lattice_rand = np.random.rand(grid_size,grid_size)
     lattice = (lattice_rand < prob).astype(int)
     return lattice
 
-L = [10, 20, 50, 100, 200, 500, 1000]
+L = 500
 p_c = 0.6
+p = [p_c, p_c/2.0,  p_c + (1 - p_c)/2.0]
 num_experiments = 100
-lcc_pc = {k: [] for k in L}
-for grid_size in L:
-    print("Running 100 experiments for gridsize = ", grid_size)
-    for _ in range(num_experiments):
-        lcc = maxAreaOfIsland(generate_grid(grid_size, p))
-        lcc_pc[grid_size].append(lcc)
-exp_file = open('percolation_experiment_pc_size_distribution' + str(grid_size)+'.pickle', 'wb')
+lcc_pc = {k: [] for k in p}
+for prob in p:
+    print("prob = ", prob)
+    for i in range(num_experiments):
+        if (i%10) == 0:
+            print("experiment = ", i)
+        count_sizes = distAreaOfIsland(generate_grid(L, prob))
+        lcc_pc[prob].append(count_sizes)
+exp_file = open('percolation_critical_analysis_L'+str(L)+'.pickle', 'wb')
 pickle.dump(lcc_pc, exp_file)
 exp_file.close()
